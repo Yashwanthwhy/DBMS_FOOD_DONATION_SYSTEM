@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FoodShare Connect | Food Donation Management System</title>
+  <meta name="description" content="Platform connecting food donors with NGOs to rescue surplus food and distribute meals with real-time tracking and MySQL database integration.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Background Shooting Stars Canvas -->
+  <canvas id="shootingStarsCanvas"></canvas>
+
+  <!-- Header / Navigation -->
+  <header class="app-header">
+    <div class="header-container">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 0 1 10 10c0 5.523-4.477 10-10 10S2 17.523 2 12a10 10 0 0 1 10-10z"></path>
+            <path d="M12 6v6l4 2"></path>
+            <path d="M7 16h10"></path>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">FoodShare Connect</span>
+          <span class="brand-tagline">Surplus Food Rescue & Distribution</span>
+        </div>
+      </div>
+
+      <!-- Live DB Status Pill -->
+      <div class="db-status-pill" id="dbStatusPill" onclick="testDbConnection()" title="Click to test/refresh MySQL connection">
+        <span class="status-dot"></span>
+        <span class="status-label" id="dbStatusText">Checking MySQL...</span>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="openModal('postFoodModal')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+          Donate Surplus Food
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Navigation Tabs -->
+  <main class="container main-content">
+    <nav class="navigation-tabs">
+      <button class="nav-tab active" data-tab="packages" onclick="switchTab('packages')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        Food Packages
+      </button>
+      <button class="nav-tab" data-tab="requests" onclick="switchTab('requests')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        NGO Requests
+      </button>
+      <button class="nav-tab" data-tab="assignments" onclick="switchTab('assignments')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        Assignments & Logistics
+      </button>
+      <button class="nav-tab" data-tab="distributions" onclick="switchTab('distributions')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        Distribution History
+      </button>
+      <button class="nav-tab" data-tab="donors" onclick="switchTab('donors')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        Donors
+      </button>
+      <button class="nav-tab" data-tab="ngos" onclick="switchTab('ngos')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+        NGOs
+      </button>
+    </nav>
+
+    <!-- TAB 1: FOOD PACKAGES -->
+    <section id="tab-packages" class="tab-pane active">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-heading">Surplus Food Packages</h2>
+          <p class="section-subheading">Live perishable and packaged food listings ready for pickup and dispatch.</p>
+        </div>
+        <div class="toolbar-controls">
+          <select id="packageCategoryFilter" class="form-select" onchange="renderPackages()">
+            <option value="ALL">All Food Categories</option>
+            <option value="COOKED_MEALS">Cooked Meals</option>
+            <option value="RAW_PRODUCE">Raw Produce</option>
+            <option value="BAKERY_DAIRY">Bakery & Dairy</option>
+            <option value="PACKAGED_GOODS">Packaged Goods</option>
+          </select>
+          <button class="btn btn-primary" onclick="openModal('postFoodModal')">+ Post Food</button>
+        </div>
+      </div>
+
+      <div class="packages-grid" id="packagesGrid">
+        <div class="loading-spinner">Loading food packages...</div>
+      </div>
+    </section>
+
+    <!-- TAB 2: REQUESTS -->
+    <section id="tab-requests" class="tab-pane">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-heading">NGO Claims & Requests</h2>
+          <p class="section-subheading">Manage and approve requests submitted by verified NGOs for surplus food packages.</p>
+        </div>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>NGO Name</th>
+              <th>Food Package</th>
+              <th>Quantity / Servings</th>
+              <th>Urgency</th>
+              <th>Notes</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="requestsTableBody">
+            <tr><td colspan="8" class="text-center">Loading requests...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 3: ASSIGNMENTS -->
+    <section id="tab-assignments" class="tab-pane">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-heading">Logistics & Dispatch Assignments</h2>
+          <p class="section-subheading">Monitor volunteer/driver assignments, secure OTP verification, and transit tracking.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('assignmentModal')">+ New Assignment</button>
+      </div>
+
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Package</th>
+              <th>Driver & Vehicle</th>
+              <th>NGO Destination</th>
+              <th>Pickup OTP</th>
+              <th>Delivery OTP</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assignmentsTableBody">
+            <tr><td colspan="8" class="text-center">Loading assignments...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- TAB 4: DISTRIBUTION HISTORY -->
+    <section id="tab-distributions" class="tab-pane">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-heading">Distribution History & Impact Audits</h2>
+          <p class="section-subheading">Verified meal distributions, photo evidence, beneficiary details, and donor ratings.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('distributionModal')">+ Log Distribution</button>
+      </div>
+
+      <div class="distributions-grid" id="distributionsGrid">
+        <div class="loading-spinner">Loading distribution history...</div>
+      </div>
+    </section>
+
+    <!-- TAB 5: DONORS -->
+    <section id="tab-donors" class="tab-pane">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-heading">Registered Food Donors</h2>
+          <p class="section-subheading">Hotels, restaurants, supermarkets, and catering companies donating surplus food.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('donorModal')">+ Add Donor</button>
+      </div>
+
+      <div class="entity-grid" id="donorsGrid">
+        <div class="loading-spinner">Loading donors...</div>
+      </div>
+    </section>
+
+    <!-- TAB 6: NGOS -->
+    <section id="tab-ngos" class="tab-pane">
+      <div class="section-toolbar">
+        <div>
+          <h2 class="section-heading">Partner NGOs & Shelters</h2>
+          <p class="section-subheading">Certified relief organizations, shelters, and soup kitchens distributing meals.</p>
+        </div>
+        <button class="btn btn-primary" onclick="openModal('ngoModal')">+ Add NGO</button>
+      </div>
+
+      <div class="entity-grid" id="ngosGrid">
+        <div class="loading-spinner">Loading NGOs...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal: Post Surplus Food -->
+  <div class="modal" id="postFoodModal">
+    <div class="modal-backdrop" onclick="closeModal('postFoodModal')"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Donate Surplus Food Package</h3>
+        <button class="modal-close" onclick="closeModal('postFoodModal')">&times;</button>
+      </div>
+      <form id="postFoodForm" onsubmit="handlePostFood(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Donor Organization *</label>
+            <select name="donor_id" id="postFoodDonorSelect" class="form-select" required>
+              <option value="">Select Donor</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Package Title *</label>
+            <input type="text" name="title" class="form-input" placeholder="e.g., 40 Portions Mixed Rice & Curry" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Category *</label>
+              <select name="food_category" class="form-select" required>
+                <option value="COOKED_MEALS">Cooked Meals</option>
+                <option value="RAW_PRODUCE">Raw Produce / Veggies</option>
+                <option value="BAKERY_DAIRY">Bakery & Dairy</option>
+                <option value="PACKAGED_GOODS">Packaged Goods</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Dietary Type *</label>
+              <select name="dietary_type" class="form-select" required>
+                <option value="VEGETARIAN">Vegetarian</option>
+                <option value="VEGAN">Vegan</option>
+                <option value="NON_VEGETARIAN">Non-Vegetarian</option>
+                <option value="MIXED">Mixed</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Weight (kg) *</label>
+              <input type="number" step="0.1" name="quantity_kg" class="form-input" placeholder="e.g., 18.5" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Estimated Servings *</label>
+              <input type="number" name="estimated_servings" class="form-input" placeholder="e.g., 45" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Storage Condition</label>
+              <select name="storage_condition" class="form-select">
+                <option value="HOT_HOLD">Hot Hold (>60°C)</option>
+                <option value="AMBIENT">Ambient / Room Temp</option>
+                <option value="REFRIGERATED">Refrigerated (2-4°C)</option>
+                <option value="FROZEN">Frozen (<-18°C)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Hours Before Expiry *</label>
+              <input type="number" step="0.5" name="expiry_hours" class="form-input" value="6" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pickup Address *</label>
+            <input type="text" name="pickup_address" class="form-input" placeholder="Street, Building, Landmark" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pickup Instructions / Gate Pass</label>
+            <textarea name="pickup_instructions" class="form-textarea" placeholder="e.g., Use service entrance at rear, gate pass #12"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('postFoodModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Publish Surplus Package</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Request Food Package (NGO) -->
+  <div class="modal" id="requestModal">
+    <div class="modal-backdrop" onclick="closeModal('requestModal')"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Request Food Package</h3>
+        <button class="modal-close" onclick="closeModal('requestModal')">&times;</button>
+      </div>
+      <form id="requestForm" onsubmit="handleRequestFood(event)">
+        <input type="hidden" name="package_id" id="reqPackageId">
+        <div class="modal-body">
+          <div class="package-summary-card" id="reqPackageSummary"></div>
+
+          <div class="form-group">
+            <label class="form-label">Select Requesting NGO *</label>
+            <select name="ngo_id" id="requestNgoSelect" class="form-select" required>
+              <option value="">Select your NGO</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Servings Needed *</label>
+            <input type="number" name="needed_servings" id="reqNeededServings" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Urgency Level</label>
+            <select name="urgency_level" class="form-select">
+              <option value="HIGH">High (Immediate Evening/Lunch distribution)</option>
+              <option value="CRITICAL">Critical (Immediate Hunger Relief)</option>
+              <option value="NORMAL">Normal</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Distribution Purpose / Notes</label>
+            <textarea name="request_notes" class="form-textarea" placeholder="Describe beneficiaries and estimated time of distribution"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('requestModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Submit Claim Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Assign Logistics / Driver -->
+  <div class="modal" id="assignmentModal">
+    <div class="modal-backdrop" onclick="closeModal('assignmentModal')"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Assign Logistics & Driver</h3>
+        <button class="modal-close" onclick="closeModal('assignmentModal')">&times;</button>
+      </div>
+      <form id="assignmentForm" onsubmit="handleCreateAssignment(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Approved Request / Food Package *</label>
+            <select name="request_id" id="assignRequestSelect" class="form-select" required onchange="handleAssignRequestChange()">
+              <option value="">Select Approved Request</option>
+            </select>
+          </div>
+
+          <input type="hidden" name="package_id" id="assignPackageId">
+          <input type="hidden" name="ngo_id" id="assignNgoId">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Driver / Volunteer Name *</label>
+              <input type="text" name="driver_name" class="form-input" placeholder="e.g. Ramesh Singh" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Driver Phone *</label>
+              <input type="text" name="driver_phone" class="form-input" placeholder="+91 98765 00000" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Vehicle Type</label>
+              <select name="vehicle_type" class="form-select">
+                <option value="Thermal Van">Thermal Van</option>
+                <option value="Mini Truck">Mini Truck</option>
+                <option value="Three Wheeler Auto">Three Wheeler Auto</option>
+                <option value="Two Wheeler">Two Wheeler</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Vehicle Number *</label>
+              <input type="text" name="vehicle_number" class="form-input" placeholder="KA-05-AA-1234" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Logistics Notes</label>
+            <textarea name="notes" class="form-textarea" placeholder="e.g. Equipped with insulated cooler boxes"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('assignmentModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Dispatch Driver</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Record Distribution History -->
+  <div class="modal" id="distributionModal">
+    <div class="modal-backdrop" onclick="closeModal('distributionModal')"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Distribution Proof & Impact</h3>
+        <button class="modal-close" onclick="closeModal('distributionModal')">&times;</button>
+      </div>
+      <form id="distributionForm" onsubmit="handleCreateDistribution(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Completed Delivery Assignment *</label>
+            <select name="assignment_id" id="distAssignmentSelect" class="form-select" required onchange="handleDistAssignmentChange()">
+              <option value="">Select Assignment</option>
+            </select>
+          </div>
+
+          <input type="hidden" name="package_id" id="distPackageId">
+          <input type="hidden" name="ngo_id" id="distNgoId">
+          <input type="hidden" name="donor_id" id="distDonorId">
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Actual Servings Distributed *</label>
+              <input type="number" name="actual_servings_distributed" id="distServings" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Donor Rating (1-5 Stars)</label>
+              <select name="rating_donor" class="form-select">
+                <option value="5">⭐⭐⭐⭐⭐ (5 - Exceptional quality)</option>
+                <option value="4">⭐⭐⭐⭐ (4 - Very Good)</option>
+                <option value="3">⭐⭐⭐ (3 - Good)</option>
+                <option value="2">⭐⭐ (2 - Average)</option>
+                <option value="1">⭐ (1 - Needs Attention)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Beneficiaries Description *</label>
+            <input type="text" name="beneficiaries_target" class="form-input" placeholder="e.g. 80 Children and families at Night Shelter" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Distribution Location *</label>
+            <input type="text" name="distribution_location" class="form-input" placeholder="e.g. Austin Town Shelter Hall, Bengaluru" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Photo Proof URL (Optional)</label>
+            <input type="url" name="proof_image_url" class="form-input" placeholder="https://example.com/photo.jpg">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Feedback / Remarks</label>
+            <textarea name="feedback_notes" class="form-textarea" placeholder="Food was hot and distributed within 40 minutes of pickup."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('distributionModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save to History</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add Donor -->
+  <div class="modal" id="donorModal">
+    <div class="modal-backdrop" onclick="closeModal('donorModal')"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Register Food Donor</h3>
+        <button class="modal-close" onclick="closeModal('donorModal')">&times;</button>
+      </div>
+      <form id="donorForm" onsubmit="handleCreateDonor(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">Organization Name *</label>
+            <input type="text" name="organization_name" class="form-input" placeholder="e.g., Royal Orchid Banquet" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Donor Type *</label>
+              <select name="donor_type" class="form-select">
+                <option value="RESTAURANT">Restaurant / Cafe</option>
+                <option value="HOTEL">Hotel</option>
+                <option value="CATERING">Catering / Event Venue</option>
+                <option value="SUPERMARKET">Supermarket / Grocery</option>
+                <option value="CORPORATE">Corporate Cafeteria</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Food Safety License (FSSAI)</label>
+              <input type="text" name="food_safety_license" class="form-input" placeholder="FSSAI-123456789">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Contact Person *</label>
+              <input type="text" name="contact_person" class="form-input" placeholder="Manager Name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone *</label>
+              <input type="text" name="phone" class="form-input" placeholder="+91 98765 43210" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address *</label>
+            <input type="text" name="address" class="form-input" placeholder="Full Address" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('donorModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Register Donor</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Add NGO -->
+  <div class="modal" id="ngoModal">
+    <div class="modal-backdrop" onclick="closeModal('ngoModal')"></div>
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 class="modal-title">Register Partner NGO</h3>
+        <button class="modal-close" onclick="closeModal('ngoModal')">&times;</button>
+      </div>
+      <form id="ngoForm" onsubmit="handleCreateNgo(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label class="form-label">NGO Organization Name *</label>
+            <input type="text" name="organization_name" class="form-input" placeholder="e.g. Care & Share Foundation" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Registration Number *</label>
+              <input type="text" name="registration_no" class="form-input" placeholder="NGO-REG-2022-XXXX" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Daily Capacity (Servings)</label>
+              <input type="number" name="daily_servings_capacity" class="form-input" value="300" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Contact Person *</label>
+              <input type="text" name="contact_person" class="form-input" placeholder="Director / Coordinator" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone *</label>
+              <input type="text" name="phone" class="form-input" placeholder="+91 91234 56789" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Address *</label>
+            <input type="text" name="address" class="form-input" placeholder="Community Center / Shelter Address" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="closeModal('ngoModal')">Cancel</button>
+          <button type="submit" class="btn btn-primary">Register NGO</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
